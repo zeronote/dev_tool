@@ -7,9 +7,7 @@
 #
 #
 
-
 ## tools, helpers, data structures, colors
-
 USER=$(whoami)
 WORKDIR=$(pwd)
 SDKDIR=""
@@ -80,7 +78,7 @@ check_sdk() {
 check_data() {
     if [ ! -f "$DATAFILE" ]; then
         echo "[$(yellow WARNING)] cannot found $DATAFILE !"
-        echo -n "create an empty one? [y,n]:"
+        echo -n "create an empty one? [y,n]: "
         read -r yn
         case $yn in
             [Yy]* ) echo "# lines beginning with # will be ignored" > $DATAFILE; exit 0;;
@@ -131,36 +129,42 @@ check_data() {
 setup_env() {
     if [ "${#PKGS[*]}" -ne 0 ]; then
         for pkg in "${PKGS[@]}"; do
-            echo -n "[$(blue FETCHING)] $pkg ..."
+            echo -n "[$(yellow FETCHING)] $pkg ..."
             if [ -d "$pkg" ]; then
                 cls_row
                 echo -n "[$(red FETCHING)] $pkg ..."
                 echo "$(red a directory with the same name already exist)"
             else
-                # check if the remote branch exist
-                git ls-remote ${libs_to_repos[$pkg]} | grep ${libs_to_branch[$pkg]} &> /dev/null
-                if [ "$?" -ne 0 ]; then
-                    cls_row
-                    echo -n "[$(red FETCHING)] $pkg ..."
-                    echo "$(red branch)$(blue ${libs_to_branch[$pkg]})$(red not found in upstream repo)"
-                else
-                    git clone ${libs_to_repos[$pkg]} -b ${libs_to_branch[$pkg]} $pkg &> /dev/null
-                    if [ $? -eq 0 ]; then
-                        cls_row
-                        echo -n "[$(green FETCHING)] $pkg ..."
-                        echo "$(green done) [$(blue ${libs_to_branch[$pkg]})]"
-                    else
-                        cls_row
-                        echo -n "[$(red FETCHING)] $pkg ..."
-                        echo "$(red failed)"
-                    fi
-                fi
+                clone_pkg $pkg
             fi
         done
     else
         echo -n "[$(yellow WARNING)] $DATAFILE does not contain any package"
         echo
         exit 0
+    fi
+}
+
+# clone $1 pkg
+clone_pkg() {
+    echo -n "[$(yellow FETCHING)] $1 ..."
+    # check if the remote branch exist
+    git ls-remote ${libs_to_repos[$1]} | grep ${libs_to_branch[$1]} &> /dev/null
+    if [ "$?" -ne 0 ]; then
+        cls_row
+        echo -n "[$(red FETCHING)] $1 ..."
+        echo "$(red branch)$(blue ${libs_to_branch[$1]})$(red not found in upstream repo)"
+    else
+        git clone ${libs_to_repos[$1]} -b ${libs_to_branch[$1]} $1 &> /dev/null
+        if [ $? -eq 0 ]; then
+            cls_row
+            echo -n "[$(green FETCHING)] $1 ..."
+            echo "$(green done) [$(blue ${libs_to_branch[$1]})]"
+        else
+            cls_row
+            echo -n "[$(red FETCHING)] $1 ..."
+            echo "$(red failed)"
+        fi
     fi
 }
 
@@ -198,92 +202,48 @@ add_pkg() {
         if [ "${flag}" -eq 0 ]; then
             pkgname=`echo "$1" | awk  -F "/" '{print $NF}' | cut -d. -f1`
             echo $pkgname $2 $1 >> $DATAFILE
-            echo $pkgname "added"
-            echo
+            echo "[$(blue INFO)] $pkgname added"
+            check_data
+            echo "[$(blue INFO)] packages list updated"
+            echo -n "[$(blue INFO)] clone $pkgname now? [y,n]: "
+            read -r yn
+            case $yn in
+                [Yy]* ) clone_pkg $pkgname; exit 0;;
+                [Nn]* ) exit 0;;
+                * ) echo "Please answer yes[y] or no[n]."; exit 1;;
+            esac
         fi
     fi
 }
-    
+
 # reset all the stuff
 reset_env() {
-    if [ -z "${1}" ]; then
-        #delete all cloned dirs
-        for pkg in "${PKGS[@]}"; do
-            echo -n "[$(yellow DELETING)] $pkg ..."
-            if [ ! -d $pkg ]; then
-                cls_row
-                echo -n "[$(red DELETING)] $pkg ..."
-                echo "$(red not found)"
-            else
-                cd $pkg &>/dev/null
-                unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
-                if [ $unstaged -gt 0 ]; then
-                    cls_row
-                    echo -n "[$(red DELETING)] $pkg ..."
-                    echo "$(red cannot proceed)"
-                    echo
-                    echo -e "\t     cannot delete $(blue $pkg) because you have" 
-                    echo -e "\t     unstaged work in your local repository. Please"
-                    echo -e "\t     commit and push your work or stash/delete it."
-                    echo
-                    cd - &>/dev/null
-                    continue;
-                else
-                    cd - &>/dev/null
-                fi
-
-                rm -rf $pkg &> /dev/null
-                if [ $? -eq 0 ]; then
-                    echo "$(green done)"
-                else
-                    echo "$(red failed)"
-                fi
-            fi
-        done
-        echo
-
-        ask_for_reclone
-    else
-        echo -n "[$(yellow DELETING)] $1 ..."
-        if [ ! -d "${1}" ]; then
-            cls_row
-            echo -n "[$(red DELETING)] $1 ..."
-            echo "$(red not found)"
-        else
-            cd $1 &>/dev/null
-            unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
-            if [ $unstaged -gt 0 ]; then
-                cls_row
-                echo -n "[$(red DELETING)] $1 ..."
-                echo "$(red cannot proceed)"
-                echo
-                echo -e "\t     cannot delete $(blue $1) because you have" 
-                echo -e "\t     unstaged work in your local repository. Please"
-                echo -e "\t     commit and push your work or stash/delete it."
-                echo
-                cd - &>/dev/null
-            else
-                cd - &>/dev/null
-            fi
-
-            rm -rf $1 &> /dev/null
-            if [ $? -eq 0 ]; then
-                echo "$(green done)"
-            else
-                echo "$(red failed)"
-            fi
-        fi
-    fi
-}
-
-# reset all the stuff without check git status
-reset_force() {
+if [ -z "${1}" ]; then
     #delete all cloned dirs
     for pkg in "${PKGS[@]}"; do
         echo -n "[$(yellow DELETING)] $pkg ..."
         if [ ! -d $pkg ]; then
+            cls_row
+            echo -n "[$(red DELETING)] $pkg ..."
             echo "$(red not found)"
         else
+            cd $pkg &>/dev/null
+            unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
+            if [ $unstaged -gt 0 ]; then
+                cls_row
+                echo -n "[$(red DELETING)] $pkg ..."
+                echo "$(red cannot proceed)"
+                echo
+                echo -e "\t     cannot delete $(blue $pkg) because you have" 
+                echo -e "\t     unstaged work in your local repository. Please"
+                echo -e "\t     commit and push your work or stash/delete it."
+                echo
+                cd - &>/dev/null
+                continue;
+            else
+                cd - &>/dev/null
+            fi
+
             rm -rf $pkg &> /dev/null
             if [ $? -eq 0 ]; then
                 echo "$(green done)"
@@ -295,6 +255,58 @@ reset_force() {
     echo
 
     ask_for_reclone
+else
+    echo -n "[$(yellow DELETING)] $1 ..."
+    if [ ! -d "${1}" ]; then
+        cls_row
+        echo -n "[$(red DELETING)] $1 ..."
+        echo "$(red not found)"
+    else
+        cd $1 &>/dev/null
+        unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
+        if [ $unstaged -gt 0 ]; then
+            cls_row
+            echo -n "[$(red DELETING)] $1 ..."
+            echo "$(red cannot proceed)"
+            echo
+            echo -e "\t     cannot delete $(blue $1) because you have" 
+            echo -e "\t     unstaged work in your local repository. Please"
+            echo -e "\t     commit and push your work or stash/delete it."
+            echo
+            cd - &>/dev/null
+        else
+            cd - &>/dev/null
+        fi
+
+        rm -rf $1 &> /dev/null
+        if [ $? -eq 0 ]; then
+            echo "$(green done)"
+        else
+            echo "$(red failed)"
+        fi
+    fi
+fi
+}
+
+# reset all the stuff without check git status
+reset_force() {
+#delete all cloned dirs
+for pkg in "${PKGS[@]}"; do
+    echo -n "[$(yellow DELETING)] $pkg ..."
+    if [ ! -d $pkg ]; then
+        echo "$(red not found)"
+    else
+        rm -rf $pkg &> /dev/null
+        if [ $? -eq 0 ]; then
+            echo "$(green done)"
+        else
+            echo "$(red failed)"
+        fi
+    fi
+done
+echo
+
+ask_for_reclone
 }
 
 
@@ -309,102 +321,103 @@ setup_warn() {
 }
 
 # clean stdout row
+# TODO: a clever way should exist, find it
 cls_row() {
-    echo -ne "                                                                                             \r"
+echo -ne "                                                                                             \r"
 }
-                    
+                
 # update packages
 update_pkgs() {
-    for pkg in ${PKGS[@]}; do
-        echo 
+for pkg in "${PKGS[@]}"; do
+    echo 
+    cls_row
+    echo -ne "[$(yellow UPDATING)] ${pkg} ...\r"
+    if [ ! -d $pkg ]; then
         cls_row
-        echo -ne "[$(yellow UPDATING)] ${pkg} ...\r"
-        if [ ! -d $pkg ]; then
+        echo -ne "[$(red UPDATING)] ${pkg} ... $(red not found)\r"
+    else
+        cd $pkg &>/dev/null
+        unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
+        if [ $unstaged -gt 0 ]; then
             cls_row
-            echo -ne "[$(red UPDATING)] ${pkg} ... $(red not found)\r"
+            echo -ne "[$(red UNSTAGED)] ${pkg} ... $(red cannot update)\r"
+            echo
+            echo -e "\t     cannot update $(blue $pkg) because you have" 
+            echo -e "\t     unstaged work in your local repository. Please"
+            echo -e "\t     commit and push your work or stash/delete it."
+            echo
         else
-            cd $pkg &>/dev/null
-            unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
-            if [ $unstaged -gt 0 ]; then
+            # TODO: check git remote update failures
+            #       for stuff like timeouts and others related
+            cls_row
+            echo -ne "[$(yellow UPDATING)] ${pkg} ... checking remote\r"
+            lines=$(${GITREMOTEUPDATE} 2>&1 | wc -l) 
+            if [ $lines -gt 1 ]; then
                 cls_row
-                echo -ne "[$(red UNSTAGED)] ${pkg} ... $(red cannot update)\r"
-                echo
-                echo -e "\t     cannot update $(blue $pkg) because you have" 
-                echo -e "\t     unstaged work in your local repository. Please"
-                echo -e "\t     commit and push your work or stash/delete it."
-                echo
-            else
-                # TODO: check git remote update failures
-                #       for stuff like timeouts and others related
-                cls_row
-                echo -ne "[$(yellow UPDATING)] ${pkg} ... checking remote\r"
-                lines=$(${GITREMOTEUPDATE} 2>&1 | wc -l) 
-                if [ $lines -gt 1 ]; then
+                echo -ne "[$(yellow UPDATING)] ${pkg} ... pulling\r"
+                git pull &>/dev/null
+                if [ $? -eq 0 ]; then
                     cls_row
-                    echo -ne "[$(yellow UPDATING)] ${pkg} ... pulling\r"
-                    git pull &>/dev/null
-                    if [ $? -eq 0 ]; then
-                        cls_row
-                        echo -ne "[$(blue UPDATING)] ${pkg} ... $(blue updated)\r"
-                    else
-                        cls_row
-                        echo -ne "[$(yellow UPDATING)] $pkg ... $(red failed)\r"
-                    fi
+                    echo -ne "[$(blue UPDATING)] ${pkg} ... $(blue updated)\r"
                 else
                     cls_row
-                    echo -ne "[$(green UPDATING)] ${pkg} ... $(green already aligned)\r"
-                fi 
-            fi
-            cd - &>/dev/null
+                    echo -ne "[$(yellow UPDATING)] $pkg ... $(red failed)\r"
+                fi
+            else
+                cls_row
+                echo -ne "[$(green UPDATING)] ${pkg} ... $(green already aligned)\r"
+            fi 
         fi
-    done
-    echo
+        cd - &>/dev/null
+    fi
+done
+echo
 }
 
 
-# print a usefull help
+# print a useful help
 print_help() {
-    echo "
-Use: $0 [command]
+echo "
+Use: $0 [command] <options>
 
-    [command] could be:
+[command] could be:
 
-    -a, --add <repo> <branch>   add <repo> to DATAFILE, <branch> will
-                                be used when cloning
+-a, --add <repo> <branch>   add <repo> to DATAFILE, <branch> will
+                            be used when cloning
 
-    -i, --init           fetch all the repositories needed to develop
-                         for the LAM-TSU project, use this option
-                         only during the first setup of your develop
-                         environment 
-    
-    -r, --reset <pkg>    if <pkg> is provided, remove cloned <pkg> otherwise
-                         delete all cloned repos.
-                         If you have unstaged changes in one or more local repo/s
-                         a warning message will inform you and the related
-                         repository will not be deleted 
-    
-    -u, --update         for every package, check if remote (git) has changed,
-                         if TRUE try to pull from the configured branch (see
-                         the pkgs.data for all the infos); if there are
-                         unstaged changes a warning message will inform you 
-                         and the git pull will not be performed
+-i, --init           fetch all the repositories needed to develop
+                     for the LAM-TSU project, use this option
+                     only during the first setup of your develop
+                     environment 
 
-    -rf, --reset-force   delete all the existing cloned repositories,
-                         WITHOUT checking the git status      
+-r, --reset <pkg>    if <pkg> is provided, remove cloned <pkg> otherwise
+                     delete all cloned repos.
+                     If you have unstaged changes in one or more local repo/s
+                     a warning message will inform you and the related
+                     repository will not be deleted 
 
-    -h, --help           prints this help and exit
+-u, --update         for every package, check if remote (git) has changed,
+                     if TRUE try to pull from the configured branch (see
+                     the $DATAFILE for all the infos); if there are
+                     unstaged changes a warning message will inform you 
+                     and the git pull will not be performed
+
+-rf, --reset-force   delete all the existing cloned repositories,
+                     WITHOUT checking the git status      
+
+-h, --help           prints this help and exit
 
 
-    This tool use a file named \"pkgs.data\" (if you want to use a different
-    file change the DATAFILE variable) to retrieve informations about name, branch
-    and repository url. 
-    A typical entry should be formatted as above:
+This tool use a file named $DATAFILE (if you want to use a different
+file change DATAFILE variable) to retrieve informations about name, branch
+and repository url. 
+A typical entry should be formatted as above:
 
-       project_name    branch    repo_url
+   project_name    branch    repo_url
 
-    where project_name can be a name of your choice.
-    Lines which starts with # character will be ignored.
-    "
+where project_name can be a name of your choice.
+Lines which starts with # character will be ignored.
+"
 }
 
 # main stuff
@@ -417,7 +430,7 @@ case $1 in
     -r|--reset ) check_data; reset_env $2; exit 0;;
     -rf|--reset-force ) check_data; reset_force; exit 0;;
     -u|--update ) check_data; update_pkgs; exit 0;;
-    * ) echo; echo "uhmmm you should add an option, try with: $0 --help"; echo; exit 1;;
+    * ) echo; echo "uhmmm you should add a command, try with: $0 --help"; echo; exit 1;;
 esac
 
 exit 0
