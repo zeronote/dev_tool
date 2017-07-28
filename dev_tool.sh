@@ -147,6 +147,7 @@ setup_env() {
 
 # clone $1 pkg
 clone_pkg() {
+    cls_row
     echo -n "[$(yellow FETCHING)] $1 ..."
     # check if the remote branch exist
     git ls-remote ${libs_to_repos[$1]} | grep ${libs_to_branch[$1]} &> /dev/null
