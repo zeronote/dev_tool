@@ -342,18 +342,19 @@ update_pkgs() {
 update_pkg() {
     echo
     cls_row
-    echo -ne "[$(yellow UPDATING)] ${1} ...\r"
-    if [ ! -d "$1" ]; then
+    pkgname=${1%/}
+    echo -ne "[$(yellow UPDATING)] ${pkgname} ...\r"
+    if [ ! -d "${pkgname}" ]; then
         cls_row
-        echo -ne "[$(red UPDATING)] ${1} ... $(red not found)\r"
+        echo -ne "[$(red UPDATING)] ${pkgname} ... $(red not found)\r"
     else
         cd "$1" &>/dev/null
         unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
         if [ "$unstaged" -gt 0 ]; then
             cls_row
-            echo -ne "[$(red UNSTAGED)] ${1} ... $(red cannot update)\r"
+            echo -ne "[$(red UNSTAGED)] ${pkgname} ... $(red cannot update)\r"
             echo
-            echo -e "\t     cannot update $(blue $1) because you have" 
+            echo -e "\t     cannot update $(blue $pkgname) because you have" 
             echo -e "\t     unstaged work in your local repository. Please"
             echo -e "\t     commit and push your work or stash/delete it."
             echo
@@ -361,22 +362,22 @@ update_pkg() {
             # TODO: check git remote update failures
             #       for stuff like timeouts and others related
             cls_row
-            echo -ne "[$(yellow UPDATING)] ${1} ... checking remote\r"
+            echo -ne "[$(yellow UPDATING)] ${pkgname} ... checking remote\r"
             lines=$(${GITREMOTEUPDATE} 2>&1 | wc -l) 
             if [ "$lines" -gt 1 ]; then
                 cls_row
-                echo -ne "[$(yellow UPDATING)] ${1} ... pulling\r"
+                echo -ne "[$(yellow UPDATING)] ${pkgname} ... pulling\r"
                 git pull &>/dev/null
                 if [ $? -eq 0 ]; then
                     cls_row
-                    echo -ne "[$(blue UPDATING)] ${1} ... $(blue updated)\r"
+                    echo -ne "[$(blue UPDATING)] ${pkgname} ... $(blue updated)\r"
                 else
                     cls_row
-                    echo -ne "[$(yellow UPDATING)] ${1} ... $(red failed)\r"
+                    echo -ne "[$(yellow UPDATING)] ${pkgname} ... $(red failed)\r"
                 fi
             else
                 cls_row
-                echo -ne "[$(green UPDATING)] ${1} ... $(green already aligned)\r"
+                echo -ne "[$(green UPDATING)] ${pkgname} ... $(green already aligned)\r"
             fi 
         fi
         cd - &>/dev/null
