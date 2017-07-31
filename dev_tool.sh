@@ -9,7 +9,6 @@
 
 ## tools, helpers, data structures, colors
 USER=$(whoami)
-WORKDIR=$(pwd)
 SDKDIR=""
 DATAFILE="pkgs.data"
 PKGS=
@@ -46,7 +45,7 @@ yellow() { echo -e "$YELLOW_COLOR $@ $END_COLOR"; }
 
 # check if USER is not root, otherwise exit
 check_uid() {
-    if [ $EUID -eq 0 ]; then
+    if [ "$EUID" -eq 0 ]; then
         echo "[$(red WARNING)] do not run this script as root!"
         exit 1
     fi
@@ -54,7 +53,7 @@ check_uid() {
 
 # check if SDK is installed, if TRUE check for write permissions 
 check_sdk() {
-    if [ ! -d $SDKDIR ]; then
+    if [ ! -d "$SDKDIR" ]; then
         echo "[$(red WARNING)] SDK path does not exist!"
         exit 1
     else
@@ -99,7 +98,7 @@ check_data() {
         else
             # build associative arrays
             idx=0
-            while [ $idx -lt ${#PKGS[@]} ]; do
+            while [ "$idx" -lt "${#PKGS[@]}" ]; do
                 tlib="${PKGS[$idx]}"
                 trepo="${REPOS[$idx]}"
                 tdep="${REQUIRES[$idx]}"
@@ -329,21 +328,32 @@ echo -ne "                                                                      
                 
 # update packages
 update_pkgs() {
-for pkg in "${PKGS[@]}"; do
-    echo 
-    cls_row
-    echo -ne "[$(yellow UPDATING)] ${pkg} ...\r"
-    if [ ! -d $pkg ]; then
-        cls_row
-        echo -ne "[$(red UPDATING)] ${pkg} ... $(red not found)\r"
+	if [ -z "${1}" ]; then 
+        for pkg in "${PKGS[@]}"; do
+	        update_pkg ${pkg}
+        done
     else
-        cd $pkg &>/dev/null
+        update_pkg ${1}
+    fi
+    echo
+}
+
+# update single package
+update_pkg() {
+    echo
+    cls_row
+    echo -ne "[$(yellow UPDATING)] ${1} ...\r"
+    if [ ! -d "$1" ]; then
+        cls_row
+        echo -ne "[$(red UPDATING)] ${1} ... $(red not found)\r"
+    else
+        cd "$1" &>/dev/null
         unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
-        if [ $unstaged -gt 0 ]; then
+        if [ "$unstaged" -gt 0 ]; then
             cls_row
-            echo -ne "[$(red UNSTAGED)] ${pkg} ... $(red cannot update)\r"
+            echo -ne "[$(red UNSTAGED)] ${1} ... $(red cannot update)\r"
             echo
-            echo -e "\t     cannot update $(blue $pkg) because you have" 
+            echo -e "\t     cannot update $(blue $1) because you have" 
             echo -e "\t     unstaged work in your local repository. Please"
             echo -e "\t     commit and push your work or stash/delete it."
             echo
@@ -351,30 +361,27 @@ for pkg in "${PKGS[@]}"; do
             # TODO: check git remote update failures
             #       for stuff like timeouts and others related
             cls_row
-            echo -ne "[$(yellow UPDATING)] ${pkg} ... checking remote\r"
+            echo -ne "[$(yellow UPDATING)] ${1} ... checking remote\r"
             lines=$(${GITREMOTEUPDATE} 2>&1 | wc -l) 
-            if [ $lines -gt 1 ]; then
+            if [ "$lines" -gt 1 ]; then
                 cls_row
-                echo -ne "[$(yellow UPDATING)] ${pkg} ... pulling\r"
+                echo -ne "[$(yellow UPDATING)] ${1} ... pulling\r"
                 git pull &>/dev/null
                 if [ $? -eq 0 ]; then
                     cls_row
-                    echo -ne "[$(blue UPDATING)] ${pkg} ... $(blue updated)\r"
+                    echo -ne "[$(blue UPDATING)] ${1} ... $(blue updated)\r"
                 else
                     cls_row
-                    echo -ne "[$(yellow UPDATING)] $pkg ... $(red failed)\r"
+                    echo -ne "[$(yellow UPDATING)] ${1} ... $(red failed)\r"
                 fi
             else
                 cls_row
-                echo -ne "[$(green UPDATING)] ${pkg} ... $(green already aligned)\r"
+                echo -ne "[$(green UPDATING)] ${1} ... $(green already aligned)\r"
             fi 
         fi
         cd - &>/dev/null
     fi
-done
-echo
 }
-
 
 # print a useful help
 print_help() {
@@ -397,11 +404,12 @@ Use: $0 [command] <options>
                      a warning message will inform you and the related
                      repository will not be deleted 
 
--u, --update         for every package, check if remote (git) has changed,
+-u, --update <pkg>   for every package, check if remote (git) has changed,
                      if TRUE try to pull from the configured branch (see
                      the $DATAFILE for all the infos); if there are
                      unstaged changes a warning message will inform you 
-                     and the git pull will not be performed
+                     and the git pull will not be performed. If <pkg> is given
+                     only <pkg> will be updated.
 
 -rf, --reset-force   delete all the existing cloned repositories,
                      WITHOUT checking the git status      
@@ -430,7 +438,7 @@ case $1 in
     -h|--help ) print_help; exit 0;;
     -r|--reset ) check_data; reset_env $2; exit 0;;
     -rf|--reset-force ) check_data; reset_force; exit 0;;
-    -u|--update ) check_data; update_pkgs; exit 0;;
+    -u|--update ) check_data; update_pkgs $2; exit 0;;
     * ) echo; echo "uhmmm you should add a command, try with: $0 --help"; echo; exit 1;;
 esac
 
