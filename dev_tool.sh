@@ -200,7 +200,7 @@ add_pkg() {
         done
 
         if [ "${flag}" -eq 0 ]; then
-            pkgname=`echo "$1" | awk  -F "/" '{print $NF}' | cut -d. -f1`
+            pkgname=$(echo "$1" | awk  -F "/" '{print $NF}' | cut -d. -f1)
             echo $pkgname $2 $1 >> $DATAFILE
             echo "[$(blue INFO)] $pkgname added"
             check_data
