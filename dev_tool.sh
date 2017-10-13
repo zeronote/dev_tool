@@ -168,7 +168,7 @@ clone_pkg() {
     fi
 }
 
-# ask for cloning again after a reset
+# ask for cloning
 ask_for_reclone() {
     echo -n "[$(blue INFO)] clone everything again? "
     echo "(obviously, undeleted directories will not be overwritten) [y,n]: "
@@ -216,9 +216,19 @@ add_pkg() {
     fi
 }
 
-# reset all the stuff
-reset_env() {
+# remove all cloned repos
+remove_all() {
 if [ -z "${1}" ]; then
+    echo "[$(blue INFO)] you're going to permanently delete all your cloned repos"
+	echo "         ($(yellow NOTE) that in case you decide to proceed, local repos that have unstaged work will remain untouched )"
+    echo "are you sure? [y,n]: "
+    read -r yn
+    case $yn in
+         [Yy]* ) ;;
+         [Nn]* ) exit 0;;
+         * ) echo "Please answer yes[y] or no[n]."; exit 1;;
+    esac
+
     #delete all cloned dirs
     for pkg in "${PKGS[@]}"; do
         echo -n "[$(yellow DELETING)] $pkg ..."
@@ -288,8 +298,8 @@ else
 fi
 }
 
-# reset all the stuff without check git status
-reset_force() {
+# remove all the stuff without check git status
+remove_force() {
 #delete all cloned dirs
 for pkg in "${PKGS[@]}"; do
     echo -n "[$(yellow DELETING)] $pkg ..."
@@ -399,7 +409,7 @@ Use: $0 [command] <options>
                      only during the first setup of your develop
                      environment 
 
--r, --reset <pkg>    if <pkg> is provided, remove cloned <pkg> otherwise
+-r, --remove <pkg>    if <pkg> is provided, remove cloned <pkg> otherwise
                      delete all cloned repos.
                      If you have unstaged changes in one or more local repo/s
                      a warning message will inform you and the related
@@ -412,7 +422,7 @@ Use: $0 [command] <options>
                      and the git pull will not be performed. If <pkg> is given
                      only <pkg> will be updated.
 
--rf, --reset-force   delete all the existing cloned repositories,
+-rf, --remove-force   delete all the existing cloned repositories,
                      WITHOUT checking the git status      
 
 -h, --help           prints this help and exit
@@ -437,10 +447,10 @@ case $1 in
     -a|--add ) check_data; add_pkg $2 $3; exit 0;;
     -i|--init ) check_data; setup_warn; setup_env; exit 0;;
     -h|--help ) print_help; exit 0;;
-    -r|--reset ) check_data; reset_env $2; exit 0;;
-    -rf|--reset-force ) check_data; reset_force; exit 0;;
+    -r|--remove ) check_data; remove_all $2; exit 0;;
+    -rf|--remove-force ) check_data; remove_force; exit 0;;
     -u|--update ) check_data; update_pkgs $2; exit 0;;
-    * ) echo; echo "uhmmm you should add a command, try with: $0 --help"; echo; exit 1;;
+    * ) echo; echo "you should add a command, try with: $0 --help"; echo; exit 1;;
 esac
 
 exit 0
