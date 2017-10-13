@@ -266,20 +266,21 @@ if [ -z "${1}" ]; then
 
     ask_for_reclone
 else
-    echo -n "[$(yellow DELETING)] $1 ..."
-    if [ ! -d "${1}" ]; then
+    pkgname=${1%/}
+    echo -n "[$(yellow DELETING)] ${pkgname} ..."
+    if [ ! -d "${pkgname}" ]; then
         cls_row
-        echo -n "[$(red DELETING)] $1 ..."
+        echo -n "[$(red DELETING)] ${pkgname} ..."
         echo "$(red not found)"
     else
-        cd $1 &>/dev/null
+        cd $pkgname &>/dev/null
         unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
         if [ $unstaged -gt 0 ]; then
             cls_row
-            echo -n "[$(red DELETING)] $1 ..."
+            echo -n "[$(red DELETING)] $pkgname ..."
             echo "$(red cannot proceed)"
             echo
-            echo -e "\t     cannot delete $(blue $1) because you have" 
+            echo -e "\t     cannot delete $(blue $pkgname) because you have" 
             echo -e "\t     unstaged work in your local repository. Please"
             echo -e "\t     commit and push your work or stash/delete it."
             echo
@@ -288,12 +289,19 @@ else
             cd - &>/dev/null
         fi
 
-        rm -rf $1 &> /dev/null
+        rm -rf $pkgname &> /dev/null
         if [ $? -eq 0 ]; then
             echo "$(green done)"
         else
             echo "$(red failed)"
         fi
+        echo -n "[$(blue INFO)] delete $pkgname entry from local db? Future updates will avoid to update it [y,n]: "
+        read -r yn
+        case $yn in
+            [Yy]* ) sed -i "/"$pkgname"/d" $DATAFILE;;
+            [Nn]* ) exit 0;;
+            * ) echo "Please answer yes[y] or no[n]."; exit 1;;
+        esac
     fi
 fi
 }
