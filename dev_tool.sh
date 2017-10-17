@@ -412,10 +412,9 @@ Use: $0 [command] <options>
 -a, --add <repo> <branch>   add <repo> to DATAFILE, <branch> will
                             be used when cloning
 
--i, --init           fetch all the repositories needed to develop
-                     for the LAM-TSU project, use this option
-                     only during the first setup of your develop
-                     environment 
+-i, --init           fetch all the repositories listed in DATAFILE.
+                     Use this option only during the first setup of 
+                     your development environment 
 
 -r, --remove <pkg>    if <pkg> is provided, remove cloned <pkg> otherwise
                      delete all cloned repos.
