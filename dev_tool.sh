@@ -38,10 +38,10 @@ REQUIRE="4"
 ## functions
 
 # color helpers
-red() { echo -e "$RED_COLOR $@ $END_COLOR"; }
-green() { echo -e "$GREEN_COLOR $@ $END_COLOR"; }
-blue() { echo -e "$BLUE_COLOR $@ $END_COLOR"; }
-yellow() { echo -e "$YELLOW_COLOR $@ $END_COLOR"; }
+red() { echo -e "$RED_COLOR $* $END_COLOR"; }
+green() { echo -e "$GREEN_COLOR $* $END_COLOR"; }
+blue() { echo -e "$BLUE_COLOR $* $END_COLOR"; }
+yellow() { echo -e "$YELLOW_COLOR $* $END_COLOR"; }
 
 # check if USER is not root, otherwise exit
 check_uid() {
