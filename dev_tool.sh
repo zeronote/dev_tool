@@ -3,7 +3,7 @@
 #
 # author:   lorenzo chianura 
 # mail:     lorenzo.chianura_at_abinsula.com
-# version:  0.1
+# version:  0.2
 #
 #
 
