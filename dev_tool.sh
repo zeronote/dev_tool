@@ -123,6 +123,18 @@ check_data() {
     fi
 }
 
+# list packages
+list_pkgs() {
+    for pkg in "${PKGS[@]}"; do
+        if [ ! -d $pkg ]; then
+			# pkg listed in DATAFILE, but no dir exist
+            echo "$pkg $(yellow listed but not cloned)"
+		else
+            echo "$pkg"
+		fi
+    done
+	echo
+}
 
 # first time setup: fetch all packages and build them
 setup_env() {
@@ -416,7 +428,7 @@ Use: $0 [command] <options>
                      Use this option only during the first setup of 
                      your development environment 
 
--r, --remove <pkg>    if <pkg> is provided, remove cloned <pkg> otherwise
+-r, --remove <pkg>   if <pkg> is provided, remove cloned <pkg> otherwise
                      delete all cloned repos.
                      If you have unstaged changes in one or more local repo/s
                      a warning message will inform you and the related
@@ -429,7 +441,7 @@ Use: $0 [command] <options>
                      and the git pull will not be performed. If <pkg> is given
                      only <pkg> will be updated.
 
--rf, --remove-force   delete all the existing cloned repositories,
+-rf, --remove-force  delete all the existing cloned repositories,
                      WITHOUT checking the git status      
 
 -h, --help           prints this help and exit
@@ -438,7 +450,7 @@ Use: $0 [command] <options>
 This tool use a file named $DATAFILE (if you want to use a different
 file change DATAFILE variable) to retrieve informations about name, branch
 and repository url. 
-A typical entry should be formatted as above:
+A typical entry should be formatted as:
 
    project_name    branch    repo_url
 
@@ -452,11 +464,13 @@ check_uid
 
 case $1 in
     -a|--add ) check_data; add_pkg $2 $3; exit 0;;
-    -i|--init ) check_data; setup_warn; setup_env; exit 0;;
-    -h|--help ) print_help; exit 0;;
+    -i|--init ) check_data; clone_pkg $2; exit 0;;
+    -l|--list ) check_data; list_pkgs; exit 0;;
     -r|--remove ) check_data; remove_all $2; exit 0;;
     -rf|--remove-force ) check_data; remove_force; exit 0;;
+    -s|--setup ) check_data; setup_warn; setup_env; exit 0;;
     -u|--update ) check_data; update_pkgs $2; exit 0;;
+    -h|--help ) print_help; exit 0;;
     * ) echo; echo "you should add a command, try with: $0 --help"; echo; exit 1;;
 esac
 
