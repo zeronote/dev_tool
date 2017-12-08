@@ -59,13 +59,11 @@ check_sdk() {
     else
         if [ "$(stat -c %U "${SDKDIR}")" != "$USER" ]; then
             echo -n "[$(yellow WARNING)]$(blue "${USER}")does not have write "
-            echo -n "permissions on $SDKDIR, correct this? [y,n]: "
+            echo -n "permissions on $SDKDIR, fix this? [y,n]: "
             read -r yn
             case $yn in
                  [Yy]* ) sudo chown "$USER":"$USER" -R $SDKDIR;;
-                 [Nn]* ) echo -n "[ $(red ERROR) ] with no write permissions ";
-                         echo -n "on SDK sysroot path you'll be unable tu use ";
-                         echo "this script."; exit 1;;
+                 [Nn]* ) exit 0;;
                  * ) echo "Please answer yes or no."; exit 1;;
             esac
         fi
@@ -320,49 +318,49 @@ fi
 
 # remove all the stuff without check git status
 remove_force() {
-echo "[$(blue INFO)] you're going to $(red permanently) delete all your cloned repos,"
-echo "also, keep in mind that no check will be performed on the actual local status of every repository,"
-echo "proceeding will rm -rf every cloned pkg."
-echo "Are you sure? [y,n]: "
-read -r yn
-case $yn in
-	 [Yy]* ) ;;
-	 [Nn]* ) exit 0;;
-	 * ) echo "Please answer yes[y] or no[n]."; exit 1;;
-esac
+    echo "[$(blue INFO)] you're going to $(red permanently) delete all your cloned repos,"
+    echo "also, keep in mind that no check will be performed on the actual local status of every repository,"
+    echo "proceeding will rm -rf every cloned pkg."
+    echo "Are you sure? [y,n]: "
+    read -r yn
+    case $yn in
+	    [Yy]* ) ;;
+	    [Nn]* ) exit 0;;
+	    * ) echo "Please answer yes[y] or no[n]."; exit 1;;
+    esac
 
-echo "are you $(red REALLY sure?) [y,n]): "
-read -r yn
-case $yn in
-	 [Yy]* ) ;;
-	 [Nn]* ) exit 0;;
-	 * ) echo "Please answer yes[y] or no[n]."; exit 1;;
-esac
-#delete all cloned dirs
-for pkg in "${PKGS[@]}"; do
-
-    echo -n "[$(yellow DELETING)] $pkg ..."
-    if [ ! -d $pkg ]; then
-        echo "$(red not found)"
-    else
-        rm -rf $pkg &> /dev/null
-        if [ $? -eq 0 ]; then
-            echo "$(green done)"
+    echo "are you $(red REALLY sure?) [y,n]): "
+    read -r yn
+    case $yn in
+	    [Yy]* ) ;;
+	    [Nn]* ) exit 0;;
+	    * ) echo "Please answer yes[y] or no[n]."; exit 1;;
+    esac
+    
+	#delete all cloned dirs
+    for pkg in "${PKGS[@]}"; do
+        echo -n "[$(yellow DELETING)] $pkg ..."
+        if [ ! -d $pkg ]; then
+            echo "$(red not found)"
         else
-            echo "$(red failed)"
+            rm -rf $pkg &> /dev/null
+            if [ $? -eq 0 ]; then
+                echo "$(green done)"
+            else
+                echo "$(red failed)"
+            fi
         fi
-    fi
-done
-echo
+    done
+    echo
 
-ask_for_reclone
+    ask_for_reclone
 }
 
 
 # print a "first time run" warning
 setup_warn() {
     echo
-    echo "[$(yellow README)]   You're going to fetch, build and install all the"
+    echo "[$(yellow README)]   You're going to  all the"
     echo "             packages listed in $DATAFILE: if a previous "
     echo "             run of this script has already fetched all or some "
     echo "             of the packages, the git fetch will fail."
@@ -443,9 +441,14 @@ Use: $0 [command] <options>
 -a, --add <repo> <branch>   add <repo> to DATAFILE, <branch> will
                             be used when cloning
 
--i, --init           fetch all the repositories listed in DATAFILE.
+-s, --setup          fetch all the repositories listed in DATAFILE.
                      Use this option only during the first setup of 
-                     your development environment 
+                     your development environment
+
+-i, --init <repo>    clone the given <repo>, that should be already present in
+                     ${DATAFILE}
+
+-l, --list           list packages contained in ${DATAFILE}
 
 -r, --remove <pkg>   if <pkg> is provided, remove cloned <pkg> otherwise
                      delete all cloned repos.
