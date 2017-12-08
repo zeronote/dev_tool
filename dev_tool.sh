@@ -231,7 +231,7 @@ add_pkg() {
 # remove all cloned repos
 remove_all() {
 if [ -z "${1}" ]; then
-    echo "[$(blue INFO)] you're going to permanently delete all your cloned repos"
+	echo "[$(blue INFO)] you're going to $(red permanently) delete all your cloned repos"
 	echo "         ($(yellow NOTE) that in case you decide to proceed, local repos that have unstaged work will remain untouched )"
     echo "are you sure? [y,n]: "
     read -r yn
@@ -322,6 +322,25 @@ fi
 remove_force() {
 #delete all cloned dirs
 for pkg in "${PKGS[@]}"; do
+    echo "[$(blue INFO)] you're going to $(red permanently) delete all your cloned repos,"
+    echo "also, keep in mind that no check will be performed on the actual local status of every repository,"
+	echo "proceeding will rm -rf every cloned pkg."
+    echo "Are you sure? [y,n]: "
+    read -r yn
+    case $yn in
+         [Yy]* ) ;;
+         [Nn]* ) exit 0;;
+         * ) echo "Please answer yes[y] or no[n]."; exit 1;;
+    esac
+
+	echo "are you $(red REALLY sure?) [y,n]): "
+    read -r yn
+    case $yn in
+         [Yy]* ) ;;
+         [Nn]* ) exit 0;;
+         * ) echo "Please answer yes[y] or no[n]."; exit 1;;
+    esac
+
     echo -n "[$(yellow DELETING)] $pkg ..."
     if [ ! -d $pkg ]; then
         echo "$(red not found)"
