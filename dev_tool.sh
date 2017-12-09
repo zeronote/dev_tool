@@ -18,7 +18,6 @@ GITREMOTEUPDATE="git remote update"
 
 # associative arrays
 declare -Ag libs_to_repos
-declare -Ag libs_to_require
 declare -Ag libs_to_branch
 
 # colors
@@ -32,8 +31,6 @@ END_COLOR="\e[0m"
 LIBNAME="1"
 BRANCH="2"
 GITURL="3"
-REQUIRE="4"
-
 
 ## functions
 
@@ -87,9 +84,6 @@ check_data() {
         REPOS=( `grep -v '^[[:space:]]*#' ${DATAFILE} | awk -v idx=$GITURL '{print $idx}'` )
         BRANCHES=( `grep -v '^[[:space:]]*#' ${DATAFILE} | awk -v idx=$BRANCH '{print $idx}'` )
 
-        # it should be safe enough 'cause awk will return empty lines also
-        REQUIRES=( `grep -v '^[[:space:]]*#' ${DATAFILE} | awk -v idx=$REQUIRE '{print $idx}'` )
-
         # check if arrays length is correct
         if [ "${#PKGS[*]}" -ne "${#REPOS[*]}" -o "${#PKGS[*]}" -ne "${#BRANCHES[*]}" ]; then
             echo "[$(red ERROR)] $DATAFILE is malformed!"
@@ -99,7 +93,6 @@ check_data() {
             while [ "$idx" -lt "${#PKGS[@]}" ]; do
                 tlib="${PKGS[$idx]}"
                 trepo="${REPOS[$idx]}"
-                tdep="${REQUIRES[$idx]}"
                 tbranch="${BRANCHES[$idx]}"
                 # TODO: why I have to "duplicate" tlib and trepo vars in order
                 #       to avoid error assignment in the associative array?
@@ -108,11 +101,9 @@ check_data() {
                 #       but it ends with "wrong index" error
                 sub_idx=$tlib
                 sub_arg_repo=$trepo
-                sub_arg_dep=$tdep
                 sub_arg_branch=$tbranch
 
                 libs_to_repos[$sub_idx]=$sub_arg_repo
-                libs_to_require[$sub_idx]=$sub_arg_dep
                 libs_to_branch[$sub_idx]=$sub_arg_branch
 
                 let idx=idx+1
@@ -138,10 +129,10 @@ list_pkgs() {
 setup_env() {
     if [ "${#PKGS[*]}" -ne 0 ]; then
         for pkg in "${PKGS[@]}"; do
-            echo -n "[$(yellow FETCHING)] $pkg ..."
-            if [ -d "$pkg" ]; then
+            echo -n "[$(yellow FETCHING)] ${pkg} ..."
+            if [ -d "${pkg}" ]; then
                 cls_row
-                echo -n "[$(red FETCHING)] $pkg ..."
+                echo -n "[$(red FETCHING)] ${pkg} ..."
                 echo "$(red a directory with the same name already exist)"
             else
                 clone_pkg $pkg
@@ -201,7 +192,7 @@ add_pkg() {
         while [ $idx -lt ${#REPOS[@]} ]; do
             repo="${REPOS[$idx]}"
             if [ "${repo}" == "${1}" ]; then
-                echo -n "[$(yellow WARNING)] $1 already in $DATAFILE"
+                echo -n "[$(yellow WARNING)] ${1} already in ${DATAFILE}"
                 echo
                 flag=1
                 break
@@ -210,15 +201,15 @@ add_pkg() {
         done
 
         if [ "${flag}" -eq 0 ]; then
-            pkgname=$(echo "$1" | awk  -F "/" '{print $NF}' | cut -d. -f1)
-            echo $pkgname $2 $1 >> $DATAFILE
+            pkgname=$(echo "${1}" | awk  -F "/" '{print $NF}' | cut -d. -f1)
+            echo ${pkgname} ${2} ${1} >> ${DATAFILE}
             echo "[$(blue INFO)] $pkgname added"
             check_data
             echo "[$(blue INFO)] packages list updated"
-            echo -n "[$(blue INFO)] clone $pkgname now? [y,n]: "
+            echo -n "[$(blue INFO)] clone ${pkgname} now? [y,n]: "
             read -r yn
             case $yn in
-                [Yy]* ) clone_pkg $pkgname; exit 0;;
+                [Yy]* ) clone_pkg ${pkgname}; exit 0;;
                 [Nn]* ) exit 0;;
                 * ) echo "Please answer yes[y] or no[n]."; exit 1;;
             esac
@@ -241,20 +232,20 @@ if [ -z "${1}" ]; then
 
     #delete all cloned dirs
     for pkg in "${PKGS[@]}"; do
-        echo -n "[$(yellow DELETING)] $pkg ..."
-        if [ ! -d $pkg ]; then
+        echo -n "[$(yellow DELETING)] ${pkg} ..."
+        if [ ! -d ${pkg} ]; then
             cls_row
-            echo -n "[$(red DELETING)] $pkg ..."
+            echo -n "[$(red DELETING)] ${pkg} ..."
             echo "$(red not found)"
         else
             cd $pkg &>/dev/null
             unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
-            if [ $unstaged -gt 0 ]; then
+            if [ ${unstaged} -gt 0 ]; then
                 cls_row
-                echo -n "[$(red DELETING)] $pkg ..."
+                echo -n "[$(red DELETING)] ${pkg} ..."
                 echo "$(red cannot proceed)"
                 echo
-                echo -e "\t     cannot delete $(blue $pkg) because you have" 
+                echo -e "\t     cannot delete $(blue ${pkg}) because you have"
                 echo -e "\t     unstaged work in your local repository. Please"
                 echo -e "\t     commit and push your work or stash/delete it."
                 echo
@@ -264,7 +255,7 @@ if [ -z "${1}" ]; then
                 cd - &>/dev/null
             fi
 
-            rm -rf $pkg &> /dev/null
+            rm -rf ${pkg} &> /dev/null
             if [ $? -eq 0 ]; then
                 echo "$(green done)"
             else
@@ -299,7 +290,7 @@ else
             cd - &>/dev/null
         fi
 
-        rm -rf $pkgname &> /dev/null
+        rm -rf ${pkgname} &> /dev/null
         if [ $? -eq 0 ]; then
             echo "$(green done)"
         else
@@ -339,11 +330,11 @@ remove_force() {
     
 	#delete all cloned dirs
     for pkg in "${PKGS[@]}"; do
-        echo -n "[$(yellow DELETING)] $pkg ..."
-        if [ ! -d $pkg ]; then
+        echo -n "[$(yellow DELETING)] ${pkg} ..."
+        if [ ! -d ${pkg} ]; then
             echo "$(red not found)"
         else
-            rm -rf $pkg &> /dev/null
+            rm -rf ${pkg} &> /dev/null
             if [ $? -eq 0 ]; then
                 echo "$(green done)"
             else
@@ -361,7 +352,7 @@ remove_force() {
 setup_warn() {
     echo
     echo "[$(yellow README)]   You're going to  all the"
-    echo "             packages listed in $DATAFILE: if a previous "
+    echo "             packages listed in ${DATAFILE}: if a previous "
     echo "             run of this script has already fetched all or some "
     echo "             of the packages, the git fetch will fail."
     echo
@@ -372,7 +363,7 @@ setup_warn() {
 cls_row() {
 echo -ne "                                                                                             \r"
 }
-                
+
 # update packages
 update_pkgs() {
 	if [ -z "${1}" ]; then 
@@ -397,7 +388,7 @@ update_pkg() {
     else
         cd "$1" &>/dev/null
         unstaged=$(${GITSTATUS} 2>&1 | awk '{print $1}' | wc -l)
-        if [ "$unstaged" -gt 0 ]; then
+        if [ "${unstaged}" -gt 0 ]; then
             cls_row
             echo -ne "[$(red UNSTAGED)] ${pkgname} ... $(red cannot update)\r"
             echo
@@ -414,8 +405,7 @@ update_pkg() {
             if [ "$lines" -gt 1 ]; then
                 cls_row
                 echo -ne "[$(yellow UPDATING)] ${pkgname} ... pulling\r"
-                git pull &>/dev/null
-                if [ $? -eq 0 ]; then
+                if [ $(git pull &>/dev/null) -eq 0 ]; then
                     cls_row
                     echo -ne "[$(blue UPDATING)] ${pkgname} ... $(blue updated)\r"
                 else
@@ -424,8 +414,8 @@ update_pkg() {
                 fi
             else
                 cls_row
-                echo -ne "[$(green UPDATING)] ${pkgname} ... $(green already aligned)\r"
-            fi 
+                echo -ne "[$(green UPDATING)] ${pkgname} ... $(green already up to date)\r"
+            fi
         fi
         cd - &>/dev/null
     fi
@@ -458,7 +448,7 @@ Use: $0 [command] <options>
 
 -u, --update <pkg>   for every package, check if remote (git) has changed,
                      if TRUE try to pull from the configured branch (see
-                     the $DATAFILE for all the infos); if there are
+                     the ${DATAFILE} for all the infos); if there are
                      unstaged changes a warning message will inform you 
                      and the git pull will not be performed. If <pkg> is given
                      only <pkg> will be updated.
@@ -469,9 +459,9 @@ Use: $0 [command] <options>
 -h, --help           prints this help and exit
 
 
-This tool use a file named $DATAFILE (if you want to use a different
+This tool use a file named ${DATAFILE} (if you want to use a different
 file change DATAFILE variable) to retrieve informations about name, branch
-and repository url. 
+and repository url.
 A typical entry should be formatted as:
 
    project_name    branch    repo_url
@@ -484,16 +474,16 @@ Lines which starts with # character will be ignored.
 # main stuff
 check_uid
 
-case $1 in
-    -a|--add ) check_data; add_pkg $2 $3; exit 0;;
-    -i|--init ) check_data; clone_pkg $2; exit 0;;
+case ${1} in
+    -a|--add ) check_data; add_pkg ${2} ${3}; exit 0;;
+    -i|--init ) check_data; clone_pkg ${2}; exit 0;;
     -l|--list ) check_data; list_pkgs; exit 0;;
-    -r|--remove ) check_data; remove_all $2; exit 0;;
+    -r|--remove ) check_data; remove_all ${2}; exit 0;;
     -rf|--remove-force ) check_data; remove_force; exit 0;;
     -s|--setup ) check_data; setup_warn; setup_env; exit 0;;
-    -u|--update ) check_data; update_pkgs $2; exit 0;;
+    -u|--update ) check_data; update_pkgs ${2}; exit 0;;
     -h|--help ) print_help; exit 0;;
-    * ) echo; echo "you should add a command, try with: $0 --help"; echo; exit 1;;
+    * ) echo; echo "you should add a command, try with: ${0} --help"; echo; exit 1;;
 esac
 
 exit 0
