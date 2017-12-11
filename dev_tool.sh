@@ -404,8 +404,9 @@ update_pkg() {
             lines=$(${GITREMOTEUPDATE} 2>&1 | wc -l) 
             if [ "$lines" -gt 1 ]; then
                 cls_row
-                echo -ne "[$(yellow UPDATING)] ${pkgname} ... pulling\r"
-                if [ $(git pull &>/dev/null) -eq 0 ]; then
+                echo -ne "[$(yellow UPDATING)] ${pkgname} ... fetching\r"
+				git pull &>/dev/null
+                if [ $? -eq 0 ]; then
                     cls_row
                     echo -ne "[$(blue UPDATING)] ${pkgname} ... $(blue updated)\r"
                 else
