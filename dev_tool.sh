@@ -75,7 +75,7 @@ check_data() {
         echo -n "create an empty one? [y,n]: "
         read -r yn
         case $yn in
-            [Yy]* ) echo "# lines beginning with # will be ignored" > $DATAFILE; exit 0;;
+            [Yy]* ) echo "# lines beginning with # will be ignored" > $DATAFILE;;
             [Nn]* ) exit 1;;
             * ) echo "Please answer yer or no."; exit 1;;
         esac
@@ -184,8 +184,10 @@ ask_for_reclone() {
 # add packages to DATAFILE
 add_pkg() {
     if [[ -z ${1} || -z ${2} ]]; then
+        echo
         echo "missing arguments, usage:"
         echo "    ./dev_tool.sh -a git@your.git.repo/project.git branch"
+        echo
     else
         idx=0    
         flag=0
@@ -220,7 +222,7 @@ add_pkg() {
 # remove all cloned repos
 remove_all() {
 if [ -z "${1}" ]; then
-	echo "[$(blue INFO)] you're going to $(red permanently) delete all your cloned repos"
+	echo "[$(blue INFO)] you're going to $(red permanently) delete all your cloned repositories"
 	echo "         ($(yellow NOTE) that in case you decide to proceed, local repos that have unstaged work will remain untouched )"
     echo "are you sure? [y,n]: "
     read -r yn
@@ -309,7 +311,7 @@ fi
 
 # remove all the stuff without check git status
 remove_force() {
-    echo "[$(blue INFO)] you're going to $(red permanently) delete all your cloned repos,"
+    echo "[$(blue INFO)] you're going to $(red permanently) delete all your cloned repositories,"
     echo "also, keep in mind that no check will be performed on the actual local status of every repository,"
     echo "proceeding will rm -rf every cloned pkg."
     echo "Are you sure? [y,n]: "
