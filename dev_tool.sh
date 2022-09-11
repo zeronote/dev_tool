@@ -2,7 +2,7 @@
 #
 #
 # author:   lorenzo chianura 
-# mail:     lorenzo.chianura_at_abinsula.com
+# mail:     lorenzo.chianura_at_gmail.com
 # version:  0.2
 #
 #
